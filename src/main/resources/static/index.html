@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neo4j Query Executor</title>
+    <style>
+        /* Styling the API result boxes */
+        .notification-api-box {
+            color: darkblue;
+            background-color: transparent; /* Matches the page color */
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid black; /* Black outline */
+            border-radius: 5px;
+            white-space: pre-wrap; /* Preserve whitespace and line breaks */
+        }
+
+        .gqlstatusobject-api-box {
+            color: purple;
+            background-color: transparent; /* Matches the page color */
+            padding: 10px;
+            border: 1px solid black; /* Black outline */
+            margin-bottom: 20px;
+            border-radius: 5px;
+            white-space: pre-wrap; /* Preserve whitespace and line breaks */
+        }
+        .error-box {
+            color: darkred; /* Dark red text */
+            background-color: transparent; /* Transparent background */
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid black; /* Black outline */
+            border-radius: 5px; /* Rounded corners */
+            white-space: pre-wrap; /* Preserve whitespace and line breaks */
+            overflow-wrap: break-word; /* Handle long words or URLs */
+        }
+        /* Extend the query box */
+        textarea#query {
+            width: 80%;
+            height: 150px;
+        }
+
+        body {
+            background-color: #f4f4f4; /* Page color */
+        }
+    </style>
+</head>
+<body>
+<h1>Execute Neo4j Query</h1>
+<form id="queryForm">
+    <label for="url">Neo4j URL:</label><br>
+    <input type="text" id="url" name="url" value="neo4j+s://gqlstat2-devcore.databases.neo4j-dev.io" style="width: 80%;"><br><br>
+
+    <label for="username">Username:</label><br>
+    <input type="text" id="username" name="username" value="neo4j" style="width: 80%;"><br><br>
+
+    <label for="password">Password:</label><br>
+    <input type="password" id="password" name="password" value="mustbeneo4j" style="width: 80%;"><br><br>
+
+    <label for="query">Enter Query:</label><br><br>
+    <textarea id="query" name="query"></textarea><br><br>
+
+    <input type="submit" value="Run Query">
+</form>
+
+<h2>Results</h2>
+<div id="notification-api-result" class="notification-api-box"></div>
+<div id="gqlstatusobject-api-result" class="gqlstatusobject-api-box"></div>
+<div id="error-result" class="error-box"></div>
+
+<script>
+    document.getElementById('queryForm').addEventListener('submit', function(event) {
+        event.preventDefault();
+        const url = document.getElementById('url').value;
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const query = document.getElementById('query').value;
+
+        fetch('/runQuery', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ url, username, password, query })
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.text();
+        })
+        .then(data => {
+            if (data.includes("Error Code:")) {
+                const errorParts = data.split("\n");
+                const errorCode = errorParts[0].replace("Error Code: ", "");
+                const errorMessage = errorParts.slice(1).join("\n").replace("Error Message: ", "");
+
+                document.getElementById('error-result').textContent = `Error Code: ${errorCode}\nError Message: ${errorMessage}`;
+            } else {
+                // Handle as normal result, display Notifications and GQL Status if no error
+                document.getElementById('notification-api-result').textContent = data;
+            }
+        })
+        .catch(error => {
+            document.getElementById('error-result').textContent = `Error Code: Unknown\nError Message: ${error.message}`;
+        });
+    });
+</script>
+</body>
+</html>
